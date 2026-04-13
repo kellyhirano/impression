@@ -1,0 +1,19 @@
+[Unit]
+Description=Run Pi Impression Weather Display
+Wants=network-online.target
+After=network-online.target
+StartLimitInterval=60s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/impression
+ExecStart=/opt/impression/venv/bin/python -u weather.py
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

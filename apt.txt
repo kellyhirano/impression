@@ -1,0 +1,5 @@
+fonts-freefont-ttf
+libfreetype6
+libopenjp2-7
+python3-numpy
+python3-rpi.gpio

@@ -1,0 +1,8 @@
+[ALL]
+mqtt_host = <mqtt server ip>
+mqtt_host_port = 1883
+heartbeat_url =
+
+[AWAIR]
+mqtt_subs = ["location/Room1", "location/Room2"]
+mqtt_ext_subs = ["location/Room"]
