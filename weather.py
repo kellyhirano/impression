@@ -85,26 +85,26 @@ def on_message(client, userdata, msg):
         now = time.time()
         if msg.topic == 'weewx/sensor':
             temp = data.get('outdoor_temperature')
+            cutoff = now - HISTORY_SECONDS
+            g_temp_history[:] = [(t, v) for t, v in g_temp_history
+                                 if t >= cutoff]
             if temp is not None:
                 g_temp_history.append((now, float(temp)))
-                cutoff = now - HISTORY_SECONDS
-                g_temp_history[:] = [(t, v) for t, v in g_temp_history
-                                     if t >= cutoff]
         elif msg.topic == 'pool/sensor':
             pool_temp = data.get('pool_temp')
+            cutoff = now - HISTORY_SECONDS
+            g_pool_temp_history[:] = [(t, v) for t, v in g_pool_temp_history
+                                       if t >= cutoff]
             if pool_temp is not None:
                 g_pool_temp_history.append((now, float(pool_temp)))
-                cutoff = now - HISTORY_SECONDS
-                g_pool_temp_history[:] = [(t, v) for t, v in g_pool_temp_history
-                                           if t >= cutoff]
         elif msg.topic == 'rainforest/load':
             kw = data.get('instantaneous')
+            cutoff = now - HISTORY_SECONDS
+            g_power_history[:] = [(t, v) for t, v in g_power_history
+                                  if t >= cutoff]
             if kw is not None:
                 if not g_power_history or now - g_power_history[-1][0] >= 60:
                     g_power_history.append((now, float(kw)))
-                    cutoff = now - HISTORY_SECONDS
-                    g_power_history[:] = [(t, v) for t, v in g_power_history
-                                          if t >= cutoff]
     except json.JSONDecodeError as e:
         print(f"Failed to parse MQTT message on {msg.topic}: {e}")
     except Exception as e:
@@ -333,10 +333,33 @@ def draw_temp_chart(draw, font):
         forecast_low  = day.get('forecast_low')
 
         # Determine bar temps and color
-        if actual_high is not None and actual_low is not None:
+        # Today is always at index 3 (3 past days + today + 3 future days)
+        # Outline=forecast range when available; fill=actual range
+        is_today = (i == 3)
+
+        if is_today:
+            if forecast_high is not None:
+                fc_low = forecast_low if forecast_low is not None else forecast_high
+                fy_top = temp_to_y(forecast_high)
+                fy_bot = temp_to_y(fc_low)
+                if fy_top > fy_bot:
+                    fy_top, fy_bot = fy_bot, fy_top
+                if fy_bot == fy_top:
+                    fy_bot = fy_top + 2
+                draw.rectangle([(bar_x, fy_top), (bar_x + CHART_BAR_W - 1, fy_bot)],
+                               outline=inky_display.RED)
+            if actual_high is not None:
+                bar_high, bar_low = actual_high, actual_low
+            elif forecast_high is not None:
+                bar_high = forecast_high
+                bar_low  = forecast_low if forecast_low is not None else forecast_high
+            else:
+                bar_high = bar_low = None
+            bar_color = inky_display.RED
+        elif actual_high is not None and actual_low is not None:
             bar_high  = actual_high
             bar_low   = actual_low
-            bar_color = inky_display.BLUE if i == 3 else inky_display.ORANGE
+            bar_color = inky_display.ORANGE
         elif forecast_high is not None:
             bar_high  = forecast_high
             bar_low   = forecast_low if forecast_low is not None else forecast_high
